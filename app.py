@@ -4,6 +4,7 @@
 """
 TheMoviePredictor script
 Author: Arnaud de Mouhy <arnaud@admds.net>
+Author: Guillaume Meurisse <g.meurisse.ia@gmail.com>
 """
 
 import mysql.connector
