@@ -90,11 +90,11 @@ def scrapWikiPage(url):
     for row, raw_key in enumerate(keys):
         key = raw_key.get_text()
         if key=='Titre original':
-            infos['original_title']=values[row].get_text().strip('\n')
+            infos['original_title']=values[row].get_text().lstrip('\n')
         elif keys[row].get_text()=='Sortie':
-            infos['release_date']=values[row].get_text().strip('\n')
+            infos['release_date']=values[row].get_text().lstrip('\n')
         elif keys[row].get_text()=='Durée':
-            infos['duration']=values[row].get_text().strip('\n').strip('\xa0minutes')
+            infos['duration']=values[row].get_text().lstrip('\n').strip('\xa0minutes')
         elif keys[row].get_text()=='Acteurs principaux':
             actors=values[row].find_all('a')
             infos['cast']=[]
@@ -105,9 +105,10 @@ def scrapWikiPage(url):
                 entries=values[row].find_all('a')
                 infos[key]=[]
                 for i,entry in enumerate(entries):
-                    infos[key].append(entry.get_text())
+                    if entry.get_text() != '':
+                        infos[key].append(entry.get_text())
             else:
-                infos[keys[row].get_text()]=values[row].get_text().strip('\n')
+                infos[keys[row].get_text()]=values[row].get_text().lstrip('\n')
     return infos
 
 
