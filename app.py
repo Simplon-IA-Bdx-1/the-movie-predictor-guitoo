@@ -31,6 +31,9 @@ def findQuery(table, id):
 def findAllQuery(table):
     return ("SELECT * FROM {}".format(table))
 
+def insertPeopleQuery(table,firstname,lastname):
+    return ("INSERT INTO {} (`firstname`, `lastname`) VALUES (\"{}\", \"{}\");".format(table,firstname,lastname))
+
 def find(table, id):
     cnx = connectToDatabase()
     cursor = createCursor(cnx)
@@ -50,6 +53,15 @@ def findAll(table):
     disconnectDatabase(cnx)
     return results
 
+def insertPeople(table,firstname, lastname):
+    cnx = connectToDatabase()
+    cursor = createCursor(cnx)
+    query = insertPeopleQuery(table, firstname, lastname)
+    cursor.execute(query)
+    cnx.commit()
+    closeCursor(cursor)
+    disconnectDatabase(cnx) 
+
 def printPerson(person):
     print("#{}: {} {}".format(person['id'], person['firstname'], person['lastname']))
 
@@ -58,15 +70,19 @@ def printMovie(movie):
 
 parser = argparse.ArgumentParser(description='Process MoviePredictor data')
 
-parser.add_argument('context', choices=['people', 'movies'], help='Le contexte dans lequel nous allons travailler')
+parser.add_argument('context', choices=['people', 'movies'], help='le contexte dans lequel nous allons travailler')
 
 action_subparser = parser.add_subparsers(title='action', dest='action')
 
-list_parser = action_subparser.add_parser('list', help='Liste les entitÃ©es du contexte')
-list_parser.add_argument('--export' , help='Chemin du fichier exportÃ©')
+list_parser = action_subparser.add_parser('list', help='liste les entitées du contexte')
+list_parser.add_argument('--export' , help='chemin du fichier exporté')
 
-find_parser = action_subparser.add_parser('find', help='Trouve une entitÃ© selon un paramÃ¨tre')
-find_parser.add_argument('id' , help='Identifant Ã  rechercher')
+find_parser = action_subparser.add_parser('find', help='trouve une entité selon un paramètre')
+find_parser.add_argument('id' , help='identifant à  rechercher')
+
+insert_parser = action_subparser.add_parser('insert', help='insère une nouvelle entité')
+insert_parser.add_argument('--firstname' , help='prénom de l\'entité à insérer')
+insert_parser.add_argument('--lastname' , help='nom de famille de l\'entité à insérer')
 
 args = parser.parse_args()
 
@@ -87,8 +103,10 @@ if args.context == "people":
         people = find("people", peopleId)
         for person in people:
             printPerson(person)
+    if args.action == "insert":
+        insertPeople("people", args.firstname, args.lastname)
 
-if args.context == "movies":
+elif args.context == "movies":
     if args.action == "list":  
         movies = findAll("movies")
         for movie in movies:
