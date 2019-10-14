@@ -87,8 +87,9 @@ def scrapWikiPage(url):
     keys = soup.find('div', class_='infobox_v3').find('tbody').find_all('th')
     values =soup.find('div', class_='infobox_v3').find('tbody').find_all('td')
     
-    for row in range(0,len(keys)):
-        if keys[row].get_text()=='Titre original':
+    for row, raw_key in enumerate(keys):
+        key = raw_key.get_text()
+        if key=='Titre original':
             infos['original_title']=values[row].get_text().strip('\n')
         elif keys[row].get_text()=='Sortie':
             infos['release_date']=values[row].get_text().strip('\n')
@@ -100,7 +101,13 @@ def scrapWikiPage(url):
             for i,actor in enumerate(actors):
                 infos['cast'].append(actor.get_text())
         else:
-            infos[keys[row].get_text()]=values[row].get_text().strip('\n')
+            if len(values[row].find_all('a')) >1:
+                entries=values[row].find_all('a')
+                infos[key]=[]
+                for i,entry in enumerate(entries):
+                    infos[key].append(entry.get_text())
+            else:
+                infos[keys[row].get_text()]=values[row].get_text().strip('\n')
     return infos
 
 
