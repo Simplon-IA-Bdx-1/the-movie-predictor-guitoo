@@ -92,10 +92,15 @@ def scrapWikiPage(url):
             infos['original_title']=values[row].get_text().strip('\n')
         elif keys[row].get_text()=='Sortie':
             infos['release_date']=values[row].get_text().strip('\n')
-        elif  keys[row].get_text()=='Durée':
+        elif keys[row].get_text()=='Durée':
             infos['duration']=values[row].get_text().strip('\n').strip('\xa0minutes')
-#        else:
-#            infos[keys[row].get_text()]=values[row].get_text().strip('\n')
+        elif keys[row].get_text()=='Acteurs principaux':
+            actors=values[row].find_all('a')
+            infos['cast']=[]
+            for i,actor in enumerate(actors):
+                infos['cast'].append(actor.get_text())
+        else:
+            infos[keys[row].get_text()]=values[row].get_text().strip('\n')
     return infos
 
 
