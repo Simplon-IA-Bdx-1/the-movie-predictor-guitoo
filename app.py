@@ -34,9 +34,9 @@ def findAllQuery(table):
 def insertPersonQuery(table,firstname,lastname):
     return ("INSERT INTO {} (`firstname`, `lastname`) VALUES (\"{}\", \"{}\");".format(table,firstname,lastname))
 
-def insertMovieQuery(table, title, duration, original_title, release_date):
-    return ("""INSERT INTO {} (title, duration, original_title, release_date)
-               VALUES (\"{}\", \"{}\", \"{}\", \"{}\");""".format(table, title, duration, original_title, release_date))
+def insertMovieQuery(table, title, duration, original_title, rating, release_date):
+    return ("""INSERT INTO {} (`title`, `duration`, `original_title`, `rating`, `release_date`)
+               VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\");""".format(table, title, duration, original_title, rating, release_date))
 
 def sendSelectQuery(query):
     cnx = connectToDatabase()
@@ -66,8 +66,8 @@ def insertPerson(table,firstname, lastname):
     query = insertPersonQuery(table, firstname, lastname)
     sendInsertQuery(query)
 
-def insertMovie(table, title, duration, original_title, release_date):
-    query = insertMovieQuery(table, title, duration, original_title, release_date)
+def insertMovie(table, title, duration, original_title, rating, release_date):
+    query = insertMovieQuery(table, title, duration, original_title, rating, release_date)
     sendInsertQuery(query)
 
 def printPerson(person):
@@ -94,13 +94,14 @@ find_parser.add_argument('id' , help='identifant à  rechercher')
 insert_parser = action_subparser.add_parser('insert', help='insère une nouvelle entité')
 
 if context == "people":
-    insert_parser.add_argument('--firstname' , help='prénom de l\'entité à insérer')
-    insert_parser.add_argument('--lastname' , help='nom de famille de l\'entité à insérer')
+    insert_parser.add_argument('--firstname' , help='prénom de l\'entité à insérer', required=True)
+    insert_parser.add_argument('--lastname' , help='nom de famille de l\'entité à insérer', required=True)
 elif context == "movies":
-    insert_parser.add_argument('--title', help='titre du film à insérer')
-    insert_parser.add_argument('--duration', help='durée du film à insérer')
-    insert_parser.add_argument('--original-title', help='titre original du film à insérer')
-    insert_parser.add_argument('--release-date', metavar='YYYY-MM-DD',help='date de sortir du film à insérer')
+    insert_parser.add_argument('--title', help='titre du film à insérer', required=True)
+    insert_parser.add_argument('--duration', help='durée du film à insérer', required=True)
+    insert_parser.add_argument('--original-title', help='titre original du film à insérer', required=True)
+    insert_parser.add_argument('--rating', help='catégorie d\'age du film à insérer', required=True)   
+    insert_parser.add_argument('--release-date', metavar='YYYY-MM-DD',help='date de sortir du film à insérer', required=True)
  
 args = parser.parse_args()
 
@@ -135,4 +136,4 @@ if args.context == "movies":
         for movie in movies:
             printMovie(movie)
     if args.action == "insert":
-         insertMovie("movies", args.title, args.duration, args.original_title, args.release_date)
+         insertMovie("movies", args.title, args.duration, args.original_title, args.rating, args.release_date)
