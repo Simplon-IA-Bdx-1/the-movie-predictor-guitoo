@@ -10,6 +10,8 @@ import mysql.connector
 import sys
 import argparse
 import csv
+import requests
+from bs4 import BeautifulSoup
 
 def connectToDatabase():
     return mysql.connector.connect(user='predictor', password='predictor',
@@ -36,7 +38,7 @@ def insertPersonQuery(table,firstname,lastname):
 
 def insertMovieQuery(table, title, duration, original_title, rating, release_date):
     return ("""INSERT INTO {} (`title`, `duration`, `original_title`, `rating`, `release_date`)
-               VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\");""".format(table, title, duration, original_title, rating, release_date))
+               VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format(table, title, duration, original_title, rating, release_date))
 
 def sendSelectQuery(query):
     cnx = connectToDatabase()
@@ -68,6 +70,7 @@ def insertPerson(table,firstname, lastname):
 
 def insertMovie(table, title, duration, original_title, rating, release_date):
     query = insertMovieQuery(table, title, duration, original_title, rating, release_date)
+    print(query)
     sendInsertQuery(query)
 
 def printPerson(person):
@@ -76,9 +79,30 @@ def printPerson(person):
 def printMovie(movie):
     print("#{}: {} released on {}".format(movie['id'], movie['title'], movie['release_date']))
 
-tmp_parser = argparse.ArgumentParser(add_help=False)
-tmp_parser.add_argument('context', choices=['people', 'movies'])
-args,remaining_args = tmp_parser.parse_known_args()
+def scrapWikiPage(url):
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    infos = {}
+    infos['title'] = soup.find('div', class_='infobox_v3').find('div', class_='entete').find('cite').get_text()
+    keys = soup.find('div', class_='infobox_v3').find('tbody').find_all('th')
+    values =soup.find('div', class_='infobox_v3').find('tbody').find_all('td')
+    
+    for row in range(0,len(keys)):
+        if keys[row].get_text()=='Titre original':
+            infos['original_title']=values[row].get_text().strip('\n')
+        elif keys[row].get_text()=='Sortie':
+            infos['release_date']=values[row].get_text().strip('\n')
+        elif  keys[row].get_text()=='Durée':
+            infos['duration']=values[row].get_text().strip('\n').strip('\xa0minutes')
+#        else:
+#            infos[keys[row].get_text()]=values[row].get_text().strip('\n')
+    return infos
+
+
+
+pre_parser = argparse.ArgumentParser(add_help=False)
+pre_parser.add_argument('context', choices=['people', 'movies'], nargs='?')
+args,remaining_args = pre_parser.parse_known_args()
 context=args.context
 
 parser = argparse.ArgumentParser(description='Process MoviePredictor data')
@@ -98,11 +122,17 @@ if context == "people":
     insert_parser.add_argument('--lastname' , help='nom de famille de l\'entité à insérer', required=True)
 elif context == "movies":
     insert_parser.add_argument('--title', help='titre du film à insérer', required=True)
-    insert_parser.add_argument('--duration', help='durée du film à insérer', required=True)
+    insert_parser.add_argument('--duration', type=int, help='durée du film à insérer', required=True)
     insert_parser.add_argument('--original-title', help='titre original du film à insérer', required=True)
-    insert_parser.add_argument('--rating', help='catégorie d\'age du film à insérer', required=True)   
+    insert_parser.add_argument('--rating', choices=["TP","-12", "-16", "-18"], help='catégorie d\'age du film à insérer', required=True)   
     insert_parser.add_argument('--release-date', metavar='YYYY-MM-DD',help='date de sortir du film à insérer', required=True)
- 
+    
+    import_parser = action_subparser.add_parser('import', help='importe des entités à partir d\'un fichier')
+    import_parser.add_argument('--file' , metavar='file.csv', help='fichier d\'où importer les entitées', required=True)
+
+    movie_parser =  action_subparser.add_parser('scrap', help='importe des entités à partir d\'une page Wikipedia')
+    movie_parser.add_argument('url' , help='page Wikipedia d\'un film')
+     
 args = parser.parse_args()
 
 if args.context == "people":
@@ -136,4 +166,11 @@ if args.context == "movies":
         for movie in movies:
             printMovie(movie)
     if args.action == "insert":
-         insertMovie("movies", args.title, args.duration, args.original_title, args.rating, args.release_date)
+        insertMovie("movies", args.title, args.duration, args.original_title, args.rating, args.release_date)
+    if args.action == "import":
+        with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
+            reader=csv.DictReader(csvfile)
+            for row in reader:
+                insertMovie("movies", row['title'], row['duration'], row['original_title'], row['rating'], row['release_date'])
+    if args.action == 'scrap':
+        print(scrapWikiPage(args.url))                     
