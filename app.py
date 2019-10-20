@@ -13,6 +13,7 @@ import argparse
 import csv
 import requests
 from bs4 import BeautifulSoup
+import re
 
 def connectToDatabase():
     return mysql.connector.connect(user='predictor', password='predictor',
@@ -40,6 +41,17 @@ def insertPersonQuery(table,firstname,lastname):
 def insertMovieQuery(table, title, duration, original_title, rating, release_date):
     return ("""INSERT INTO {} (`title`, `duration`, `original_title`, `rating`, `release_date`)
                VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format(table, title, duration, original_title, rating, release_date))
+
+def insertMovieDictQuery(table, movie):
+    fields=[]
+    values=[]
+    for key in movie:
+        fields.append('`'+ key+ '`')
+        values.append('\"' + movie[key]+ '\"')
+    sep=', '
+    return ("""INSERT INTO {} ({})
+               VALUES ({});""".format(table, sep.join(fields), sep.join(values)))
+
 
 def sendSelectQuery(query):
     cnx = connectToDatabase()
@@ -71,8 +83,13 @@ def insertPerson(table,firstname, lastname):
 
 def insertMovie(table, title, duration, original_title, rating, release_date):
     query = insertMovieQuery(table, title, duration, original_title, rating, release_date)
+    sendInsertQuery(query)
+
+def insertMovieDict(table, movie):
+    query = insertMovieDictQuery(table, movie)
     print(query)
     sendInsertQuery(query)
+
 
 def printPerson(person):
     print("#{}: {} {}".format(person['id'], person['firstname'], person['lastname']))
@@ -80,7 +97,33 @@ def printPerson(person):
 def printMovie(movie):
     print("#{}: {} released on {}".format(movie['id'], movie['title'], movie['release_date']))
 
+def find_text_in_tag(tag_name,string):
+    return lambda tag: tag.name==tag_name and string in tag.get_text()
+
 def scrapWikiPage(url):
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    infos={}
+    infos['title'] = soup.find('div', class_='infobox_v3').find('div', class_='entete').find('cite').get_text()
+    section = soup.find('span', class_='mw-headline', text='Fiche technique').parent.findNext('ul')
+    item = section.find(find_text_in_tag('li','Titre original'))
+    if item:
+        infos['original_title']=item.find('i').get_text()
+    item = section.find(find_text_in_tag('li','Pays d\'origine'))
+    if item:
+        infos['origin_country']=item.find('span').get_text().lstrip(' ')
+    item = section.find(find_text_in_tag('li','Durée'))
+    if item:
+        infos['duration']=re.findall('(\d+)', item.get_text())[0]
+    item = section.find(find_text_in_tag('li','Dates de sortie'))
+    if item:
+        infos['release_date']=re.findall('(\d+)\s(\w+)\s(\d+)', item.get_text())
+        
+
+    return infos
+    
+
+def scrapWikiPageb(url):
     page = requests.get(url)
     soup = BeautifulSoup(page.content, 'html.parser')
     infos = {}
@@ -92,11 +135,11 @@ def scrapWikiPage(url):
         key = raw_key.get_text()
         if key=='Titre original':
             infos['original_title']=values[row].get_text().lstrip('\n')
-        elif keys[row].get_text()=='Sortie':
+        elif key=='Sortie':
             infos['release_date']=values[row].get_text().lstrip('\n')
-        elif keys[row].get_text()=='Durée':
+        elif key=='Durée':
             infos['duration']=values[row].get_text().lstrip('\n').strip('\xa0minutes')
-        elif keys[row].get_text()=='Acteurs principaux':
+        elif key=='Acteurs principaux':
             actors=values[row].find_all('a')
             infos['cast']=[]
             for i,actor in enumerate(actors):
@@ -109,7 +152,7 @@ def scrapWikiPage(url):
                     if entry.get_text() != '':
                         infos[key].append(entry.get_text())
             else:
-                infos[keys[row].get_text()]=values[row].get_text().lstrip('\n')
+                infos[key]=values[row].get_text().lstrip('\n')
     return infos
 
 
@@ -185,6 +228,7 @@ if args.context == "movies":
         with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
             reader=csv.DictReader(csvfile)
             for row in reader:
-                insertMovie("movies", row['title'], row['duration'], row['original_title'], row['rating'], row['release_date'])
+#                insertMovie("movies", row['title'], row['duration'], row['original_title'], row['rating'], row['release_date'])
+                insertMovieDict("movies", row)
     if args.action == 'scrap':
         print(scrapWikiPage(args.url))                     
