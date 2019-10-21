@@ -30,19 +30,19 @@ def closeCursor(cursor):
     cursor.close()
 
 def findQuery(table, id):
-    return ("SELECT * FROM {} WHERE id = {}".format(table, id))
+    return (f"SELECT * FROM {table} WHERE id = {id}")
 
 def findAllQuery(table):
     return ("SELECT * FROM {}".format(table))
 
-def insertPersonQuery(table,firstname,lastname):
-    return ("INSERT INTO {} (`firstname`, `lastname`) VALUES (\"{}\", \"{}\");".format(table,firstname,lastname))
+def insertPersonQuery(firstname,lastname):
+    return ("INSERT INTO {} (`firstname`, `lastname`) VALUES (\"{}\", \"{}\");".format("`people`",firstname,lastname))
 
-def insertMovieQuery(table, title, duration, original_title, rating, release_date):
+def insertMovieQuery(title, duration, original_title, rating, release_date):
     return ("""INSERT INTO {} (`title`, `duration`, `original_title`, `rating`, `release_date`)
-               VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format(table, title, duration, original_title, rating, release_date))
+               VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format("`movies`", title, duration, original_title, rating, release_date))
 
-def insertMovieDictQuery(table, movie):
+def insertMovieDictQuery(movie):
     fields=[]
     values=[]
     for key in movie:
@@ -50,8 +50,7 @@ def insertMovieDictQuery(table, movie):
         values.append('\"' + movie[key]+ '\"')
     sep=', '
     return ("""INSERT INTO {} ({})
-               VALUES ({});""".format(table, sep.join(fields), sep.join(values)))
-
+               VALUES ({});""".format("`movies`", sep.join(fields), sep.join(values)))
 
 def sendSelectQuery(query):
     cnx = connectToDatabase()
@@ -67,8 +66,10 @@ def sendInsertQuery(query):
     cursor = createCursor(cnx)
     cursor.execute(query)
     cnx.commit()
+    last_id = cursor.lastrowid
     closeCursor(cursor)
     disconnectDatabase(cnx)
+    return last_id
 
 def find(table, id):
     query = findQuery(table, id)
@@ -77,19 +78,18 @@ def find(table, id):
 def findAll(table):
     return sendSelectQuery(findAllQuery(table))
 
-def insertPerson(table,firstname, lastname):
-    query = insertPersonQuery(table, firstname, lastname)
-    sendInsertQuery(query)
+def insertPerson(firstname, lastname):
+    query = insertPersonQuery(firstname, lastname)
+    return sendInsertQuery(query)
 
-def insertMovie(table, title, duration, original_title, rating, release_date):
-    query = insertMovieQuery(table, title, duration, original_title, rating, release_date)
-    sendInsertQuery(query)
+def insertMovie(title, duration, original_title, rating, release_date):
+    query = insertMovieQuery(title, duration, original_title, rating, release_date)
+    return sendInsertQuery(query)
 
-def insertMovieDict(table, movie):
+def insertMovieDict(movie):
     query = insertMovieDictQuery(table, movie)
     print(query)
-    sendInsertQuery(query)
-
+    return sendInsertQuery(query)
 
 def printPerson(person):
     print("#{}: {} {}".format(person['id'], person['firstname'], person['lastname']))
@@ -117,9 +117,7 @@ def scrapWikiPage(url):
         infos['duration']=re.findall('(\d+)', item.get_text())[0]
     item = section.find(find_text_in_tag('li','Dates de sortie'))
     if item:
-        infos['release_date']=re.findall('(\d+)\s(\w+)\s(\d+)', item.get_text())
-        
-
+        infos['release_date']=re.findall('(\d+)\s(\w+)\s(\d+)', item.get_text())        
     return infos
     
 
@@ -130,7 +128,7 @@ def scrapWikiPageb(url):
     infos['title'] = soup.find('div', class_='infobox_v3').find('div', class_='entete').find('cite').get_text()
     keys = soup.find('div', class_='infobox_v3').find('tbody').find_all('th')
     values =soup.find('div', class_='infobox_v3').find('tbody').find_all('td')
-    
+
     for row, raw_key in enumerate(keys):
         key = raw_key.get_text()
         if key=='Titre original':
@@ -142,20 +140,18 @@ def scrapWikiPageb(url):
         elif key=='Acteurs principaux':
             actors=values[row].find_all('a')
             infos['cast']=[]
-            for i,actor in enumerate(actors):
+            for actor in actors:
                 infos['cast'].append(actor.get_text())
         else:
-            if len(values[row].find_all('a')) >1:
-                entries=values[row].find_all('a')
+            entries=values[row].find_all('a')
+            if len(entries) >1:
                 infos[key]=[]
-                for i,entry in enumerate(entries):
+                for entry in entries:
                     if entry.get_text() != '':
                         infos[key].append(entry.get_text())
             else:
                 infos[key]=values[row].get_text().lstrip('\n')
     return infos
-
-
 
 pre_parser = argparse.ArgumentParser(add_help=False)
 pre_parser.add_argument('context', choices=['people', 'movies'], nargs='?')
@@ -210,7 +206,7 @@ if args.context == "people":
         for person in people:
             printPerson(person)
     if args.action == "insert":
-        insertPerson("people", args.firstname, args.lastname)
+        insertPerson(args.firstname, args.lastname)
 
 if args.context == "movies":
     if args.action == "list":  
@@ -223,12 +219,12 @@ if args.context == "movies":
         for movie in movies:
             printMovie(movie)
     if args.action == "insert":
-        insertMovie("movies", args.title, args.duration, args.original_title, args.rating, args.release_date)
+        insertMovie(args.title, args.duration, args.original_title, args.rating, args.release_date)
     if args.action == "import":
         with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
             reader=csv.DictReader(csvfile)
             for row in reader:
 #                insertMovie("movies", row['title'], row['duration'], row['original_title'], row['rating'], row['release_date'])
-                insertMovieDict("movies", row)
+                insertMovieDict(row)
     if args.action == 'scrap':
-        print(scrapWikiPage(args.url))                     
+        print(scrapWikiPageb(args.url))                     
