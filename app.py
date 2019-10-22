@@ -100,8 +100,7 @@ def printMovie(movie):
 def find_text_in_tag(tag_name,string):
     return lambda tag: tag.name==tag_name and string in tag.get_text()
 
-def scrapWikiPage(url):
-    page = requests.get(url)
+def scrapWikiPage(page):
     soup = BeautifulSoup(page.content, 'html.parser')
     infos={}
     infos['title'] = soup.find('div', class_='infobox_v3').find('div', class_='entete').find('cite').get_text()
@@ -121,8 +120,7 @@ def scrapWikiPage(url):
     return infos
     
 
-def scrapWikiPageb(url):
-    page = requests.get(url)
+def scrapWikiInfobox(page):  
     soup = BeautifulSoup(page.content, 'html.parser')
     infos = {}
     infos['title'] = soup.find('div', class_='infobox_v3').find('div', class_='entete').find('cite').get_text()
@@ -151,6 +149,25 @@ def scrapWikiPageb(url):
                         infos[key].append(entry.get_text())
             else:
                 infos[key]=values[row].get_text().lstrip('\n')
+    return infos
+
+def scrapWikiPageGeneric(page):
+    soup = BeautifulSoup(page.content, 'html.parser')
+    infos = {}
+    section_ul = soup.find('span', class_='mw-headline', text='Fiche technique').parent.findNext('ul')
+    for item in section_ul.findChildren('li'):
+        match = re.match(r'(.*?)\s:',item.getText())
+        if match:
+            key = match.group(1)
+            elements = item.findAll(['a','i'])
+            if len(elements) == 1:
+              infos[key]=elements[0].getText()
+            elif len(elements) >= 2:
+                infos[key]=[]
+                for element in elements:
+                    infos[key].append(element.getText())
+            else:
+                infos[key]=re.findall(r':\s(.*)',item.getText())[0]
     return infos
 
 pre_parser = argparse.ArgumentParser(add_help=False)
@@ -228,4 +245,8 @@ if args.context == "movies":
 #                insertMovie("movies", row['title'], row['duration'], row['original_title'], row['rating'], row['release_date'])
                 insertMovieDict(row)
     if args.action == 'scrap':
-        print(scrapWikiPageb(args.url))                     
+        page = requests.get(args.url)
+        print(scrapWikiPage(page))
+        print(scrapWikiPageInfobox(page))
+        print(scrapWikiPageGeneric(page))
+ 
