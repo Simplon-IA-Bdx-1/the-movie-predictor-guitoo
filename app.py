@@ -155,8 +155,7 @@ def scrapWikiPageb(url):
 
 pre_parser = argparse.ArgumentParser(add_help=False)
 pre_parser.add_argument('context', choices=['people', 'movies'], nargs='?')
-args,remaining_args = pre_parser.parse_known_args()
-context=args.context
+context = pre_parser.parse_known_args()[0].context
 
 parser = argparse.ArgumentParser(description='Process MoviePredictor data')
 parser.add_argument('context', choices=['people', 'movies'], help='le contexte dans lequel nous allons travailler')
@@ -206,7 +205,8 @@ if args.context == "people":
         for person in people:
             printPerson(person)
     if args.action == "insert":
-        insertPerson(args.firstname, args.lastname)
+        id = insertPerson(args.firstname, args.lastname)
+        print("New person added with id: "+str(id))
 
 if args.context == "movies":
     if args.action == "list":  
@@ -219,7 +219,8 @@ if args.context == "movies":
         for movie in movies:
             printMovie(movie)
     if args.action == "insert":
-        insertMovie(args.title, args.duration, args.original_title, args.rating, args.release_date)
+        id = insertMovie(args.title, args.duration, args.original_title, args.rating, args.release_date)
+        print("New movie added with id: "+str(id))
     if args.action == "import":
         with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
             reader=csv.DictReader(csvfile)
