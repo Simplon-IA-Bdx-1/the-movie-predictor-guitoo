@@ -14,6 +14,10 @@ import csv
 import requests
 from bs4 import BeautifulSoup
 import re
+from datetime import datetime
+import locale
+
+locale.setlocale(locale.LC_ALL, 'fr_FR')
 
 def connectToDatabase():
     return mysql.connector.connect(user='predictor', password='predictor',
@@ -102,21 +106,36 @@ def find_text_in_tag(tag_name,string):
 
 def scrapWikiPage(page):
     soup = BeautifulSoup(page.content, 'html.parser')
-    infos={}
-    infos['title'] = soup.find('div', class_='infobox_v3').find('div', class_='entete').find('cite').get_text()
-    section = soup.find('span', class_='mw-headline', text='Fiche technique').parent.findNext('ul')
-    item = section.find(find_text_in_tag('li','Titre original'))
+    infos ={}
+    entete = soup.find('div', class_=re.compile('infobox')).find('div', class_='entete')
+    infos['title'] = entete.find('cite').get_text()
+    section_ul = soup.find(id='Fiche_technique').parent.find_next_sibling('ul')
+    item = section_ul.find(find_text_in_tag('li','Titre original'))
     if item:
         infos['original_title']=item.find('i').get_text()
-    item = section.find(find_text_in_tag('li','Pays d\'origine'))
+    item = section_ul.find(find_text_in_tag('li','Pays d\'origine'))
     if item:
         infos['origin_country']=item.find('span').get_text().lstrip(' ')
-    item = section.find(find_text_in_tag('li','Durée'))
+    item = section_ul.find(find_text_in_tag('li','Durée'))
     if item:
         infos['duration']=re.findall('(\d+)', item.get_text())[0]
-    item = section.find(find_text_in_tag('li','Dates de sortie'))
+    item = section_ul.find(find_text_in_tag('li','Dates de sortie'))
     if item:
-        infos['release_date']=re.findall('(\d+)\s(\w+)\s(\d+)', item.get_text())        
+        infos['release_date']={}
+        release_dates = re.findall(r'(?:(\w[^:\n]*)\s:\s)?(\d+)\s(\w+)\s(\d+)', item.get_text())
+        for release_date in release_dates:
+            if release_date[0] is not '':
+                country = release_date[0]
+                year = release_date[1]
+                month = datetime.strptime(release_date[2],"%B").strftime('%m')
+                day = release_date[3]
+                infos['release_date'][country] = '-'.join((year, month, day))
+    item = section_ul.find(find_text_in_tag('li','Classification'))
+    if item:
+        rating_str = re.findall(r'France\s:\s([^\n]*)',item.get_text())
+        if rating_str:
+            if rating_str[0].find('12') != -1:
+                infos['rating']='-12'
     return infos
     
 
@@ -141,22 +160,22 @@ def scrapWikiInfobox(page):
             for actor in actors:
                 infos['cast'].append(actor.get_text())
         else:
-            entries=values[row].find_all('a')
+            entries=values[row].findAll(['a','i'])
             if len(entries) >1:
                 infos[key]=[]
                 for entry in entries:
-                    if entry.get_text() != '':
+                    if entry != '':
                         infos[key].append(entry.get_text())
             else:
                 infos[key]=values[row].get_text().lstrip('\n')
     return infos
 
-def scrapWikiPageGeneric(page):
+def scrapWikiGeneric(page):
     soup = BeautifulSoup(page.content, 'html.parser')
     infos = {}
-    section_ul = soup.find('span', class_='mw-headline', text='Fiche technique').parent.findNext('ul')
+    section_ul = soup.find(id='Fiche_technique').parent.find_next_sibling('ul')
     for item in section_ul.findChildren('li'):
-        match = re.match(r'(.*?)\s:',item.getText())
+        match = re.match(r'(.*?)\s?:',item.getText())
         if match:
             key = match.group(1)
             elements = item.findAll(['a','i'])
@@ -167,7 +186,9 @@ def scrapWikiPageGeneric(page):
                 for element in elements:
                     infos[key].append(element.getText())
             else:
-                infos[key]=re.findall(r':\s(.*)',item.getText())[0]
+                info = re.findall(r':\s(.*)',item.getText())
+                if info:
+                    infos[key]=info[0]
     return infos
 
 pre_parser = argparse.ArgumentParser(add_help=False)
@@ -247,6 +268,7 @@ if args.context == "movies":
     if args.action == 'scrap':
         page = requests.get(args.url)
         print(scrapWikiPage(page))
-        print(scrapWikiPageInfobox(page))
-        print(scrapWikiPageGeneric(page))
+        print(scrapWikiInfobox(page))
+        print(scrapWikiGeneric(page))
+        #print(str(scrapWikiGeneric(page)).encode('utf-8'))
  
