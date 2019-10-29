@@ -301,8 +301,9 @@ if args.context == "movies":
         with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
             reader=csv.DictReader(csvfile)
             for row in reader:
-#                insertMovie("movies", row['title'], row['duration'], row['original_title'], row['rating'], row['release_date'])
-                insertMovieDict(row)
+                movie = Movie(row['title'], row['original_title'], row['duration'], row['rating'], row['release_date'])
+                insertMovie(movie)
+#                insertMovieDict(row)
     if args.action == 'scrap':
         page = requests.get(args.url)
         print(scrapWikiPage(page))
