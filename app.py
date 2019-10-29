@@ -270,9 +270,9 @@ if args.context == "people":
         if args.export:
             with open(args.export, 'w', encoding='utf-8', newline='\n') as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(people[0].keys())
+                writer.writerow(people[0].__dict__.keys())
                 for person in people:
-                    writer.writerow(person.values())
+                    writer.writerow(person.__dict__.values())
         else:
             for person in people:
                 print(person)
