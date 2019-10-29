@@ -17,6 +17,8 @@ import re
 from datetime import datetime
 import locale
 
+from movie import Movie
+from person import Person
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
@@ -35,17 +37,17 @@ def closeCursor(cursor):
     cursor.close()
 
 def findQuery(table, id):
-    return (f"SELECT * FROM {table} WHERE id = {id}")
+    return (f"SELECT * FROM {table} WHERE id = {id} LIMIT 1")
 
 def findAllQuery(table):
     return ("SELECT * FROM {}".format(table))
 
-def insertPersonQuery(firstname,lastname):
-    return ("INSERT INTO {} (`firstname`, `lastname`) VALUES (\"{}\", \"{}\");".format("`people`",firstname,lastname))
+def insertPersonQuery(person):
+    return ("INSERT INTO {} (`firstname`, `lastname`) VALUES (\"{}\", \"{}\");".format("`people`",person.firstname,person.lastname))
 
-def insertMovieQuery(title, duration, original_title, rating, release_date):
+def insertMovieQuery(movie):
     return ("""INSERT INTO {} (`title`, `duration`, `original_title`, `rating`, `release_date`)
-               VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format("`movies`", title, duration, original_title, rating, release_date))
+               VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format("`movies`", movie.title, movie.duration, movie.original_title, movie.rating, movie.release_date))
 
 def insertMovieDictQuery(movie):
     fields=[]
@@ -62,6 +64,8 @@ def sendSelectQuery(query):
     cursor = createCursor(cnx)
     cursor.execute(query)
     results = cursor.fetchall()
+    if (cursor.rowcount == 0):
+        results = None
     closeCursor(cursor)
     disconnectDatabase(cnx)
     return results
@@ -78,17 +82,51 @@ def sendInsertQuery(query):
 
 def find(table, id):
     query = findQuery(table, id)
-    return sendSelectQuery(query)
+    results = sendSelectQuery(query)
+    if results:
+        result = results[0]
+        if table == 'movies':
+            entity = Movie(result['title'],
+                           result['original_title'],
+                           result['duration'],
+                           result['rating'],
+                           result['release_date'])
+        if table == 'people':
+            entity = Person(result['firstname'],
+                            result['lastname'])
+        entity.id = result['id']
+        return entity
+    return None
+
 
 def findAll(table):
-    return sendSelectQuery(findAllQuery(table))
-
-def insertPerson(firstname, lastname):
-    query = insertPersonQuery(firstname, lastname)
+    entities = []
+    query = findAllQuery(table)
+    results = sendSelectQuery(query)
+    if table == 'movies':
+        for result in results:
+            movie = Movie(
+                result['title'],
+                result['original_title'],
+                result['duration'],
+                result['rating'],
+                result['release_date'])
+            movie.id = result['id']
+            entities.append(movie)
+    if table == 'people':
+        for result in results:
+             person = Person(result['firstname'],
+                            result['lastname'])
+             person.id = result['id']
+             entities.append(person)
+    return entities
+    
+def insertPerson(person):
+    query = insertPersonQuery(person)
     return sendInsertQuery(query)
 
-def insertMovie(title, duration, original_title, rating, release_date):
-    query = insertMovieQuery(title, duration, original_title, rating, release_date)
+def insertMovie(movie):
+    query = insertMovieQuery(movie)
     return sendInsertQuery(query)
 
 def insertMovieDict(movie):
@@ -237,28 +275,27 @@ if args.context == "people":
                     writer.writerow(person.values())
         else:
             for person in people:
-                printPerson(person)
+                print(person)
     if args.action == "find":
         peopleId = args.id
-        people = find("people", peopleId)
-        for person in people:
-            printPerson(person)
+        person = find("people", peopleId)
+        print(person)
     if args.action == "insert":
-        id = insertPerson(args.firstname, args.lastname)
+        id = insertPerson(Person(args.firstname, args.lastname))
         print("New person added with id: "+str(id))
 
 if args.context == "movies":
     if args.action == "list":  
         movies = findAll("movies")
         for movie in movies:
-            printMovie(movie)
+            print(movie)
     if args.action == "find":  
         movieId = args.id
-        movies = find("movies", movieId)
-        for movie in movies:
-            printMovie(movie)
+        movie = find("movies", movieId)
+        print(movie)
     if args.action == "insert":
-        id = insertMovie(args.title, args.duration, args.original_title, args.rating, args.release_date)
+        movie = Movie(args.title, args.original_title, args.duration, args.rating, args.release_date)
+        id = insertMovie(movie)
         print("New movie added with id: "+str(id))
     if args.action == "import":
         with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
