@@ -20,7 +20,8 @@ class Movie:
 
     def __str__(self):
         strings = []
-        strings.append('id: ' + str(self.id))
+        if hasattr(self, 'id'):
+            strings.append('id: ' + str(self.id))
         strings.append('title: ' + str(self.title))
         strings.append('original title: ' + str(self.original_title))
         strings.append('duration: ' + str(self.duration))
