@@ -1,0 +1,8 @@
+version: '3'
+services:
+  the-movie-predictor:
+    build:
+      context: ../
+      dockerfile: ./docker/DockerFile
+    container_name: the-movie-predictor
+    image:  meurisse/themoviepredictor
