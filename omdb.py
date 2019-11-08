@@ -19,12 +19,12 @@ class Omdb:
     def api_param(self):
         return f'apikey={self.api_key}'
 
-    def search_movies(self, title, year=None, ):
+    def search_titles(self, title, year=None):
         params = self.api_param()
         params += f'&s={title}'
         params += f'&type=movie'
 
-        imdb_ids=[]
+        titles = []
         
         if year:
             params += f'&y={year}'
@@ -35,7 +35,7 @@ class Omdb:
             return None
         
         for movie in results['Search']:
-            imdb_ids.append(movie['imdbID'])
+            titles.append(movie)
         
         nb_results = int(results['totalResults'])
         last_page = ceil(nb_results/10)
@@ -44,16 +44,20 @@ class Omdb:
             page_param = f'&page={i}'
             results = requests.get(f'{self.host}/?{params}{page_param}').json()
             for movie in results['Search']:
-                imdb_ids.append(movie['imdbID'])
-        return(imdb_ids)
+                titles.append(movie)
+        return titles
+    
+    def search_movies(self, title, year=None):
+        titles = self.search_titles(title, year)
+        
         movies=[]
-        for id in imdb_ids:
-            movie = self.get_movie(id)
+        for title in titles:
+            movie = self.get_imdb_movie(title['imdbID'])
             movies.append(movie)
         return movies
 
     def get_movie(self, id):
-        self.get_imdb_movie(id)
+        return self.get_imdb_movie(id)
     
     def get_imdb_movie(self, id):
         params = self.api_param()
@@ -80,11 +84,10 @@ if __name__ == '__main__':
 
     movie_db = Omdb(os.getenv('OMDB_API_KEY'))
 
-    titanic = movie_db.get_imdb_movie('tt0120338')
-    print(titanic)
+    #titanic = movie_db.get_imdb_movie('tt0120338')
+    #print(titanic)
 
-    #movies = movie_db.search_movies('Joker')
-    #pprint(movies)
-    #print(len(movies))
-    #for movie in movies:
-    #    print(movie)
+    movies = movie_db.search_movies('Joker')
+    print(len(movies))
+    for movie in movies:
+        print(movie)
