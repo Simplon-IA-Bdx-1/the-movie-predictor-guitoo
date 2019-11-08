@@ -20,7 +20,7 @@ import locale
 from movie import Movie
 from person import Person
 
-locale.setlocale(locale.LC_ALL, 'fr_FR')
+locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
 
 def connectToDatabase():
     return mysql.connector.connect(user='predictor', password='predictor',

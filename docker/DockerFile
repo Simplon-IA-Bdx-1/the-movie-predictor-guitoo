@@ -1,3 +1,14 @@
+#FROM python:3.7-buster
 FROM python:3.7-slim-buster
 
 RUN pip install argparse mysql-connector-python beautifulsoup4 requests
+
+RUN mkdir /usr/src/themoviepredictor/
+COPY ./*.py /usr/src/themoviepredictor/
+
+RUN apt-get clean && apt-get update && apt-get install -y locales
+RUN echo 'fr_FR.UTF-8 UTF-8' >> /etc/locale.gen 
+RUN echo 'fr_FR ISO-8859-1' >> /etc/locale.gen
+RUN locale-gen
+
+CMD python /usr/src/themoviepredictor/app.py movies list
