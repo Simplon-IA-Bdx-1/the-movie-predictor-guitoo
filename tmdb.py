@@ -2,7 +2,6 @@
 
 import requests
 from movie import Movie
-from dotenv import load_dotenv
 from os import getenv
 
 class Tmdb:
@@ -90,7 +89,7 @@ class Tmdb:
 if __name__ == '__main__':
     from pprint import pprint
     import os
-    
+    from dotenv import load_dotenv
     load_dotenv()
 
     movie_db = Tmdb(os.getenv('TMDB_API_KEY'))

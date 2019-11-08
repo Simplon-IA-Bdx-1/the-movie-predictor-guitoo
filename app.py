@@ -8,7 +8,7 @@ Author: Guillaume Meurisse <g.meurisse.ia@gmail.com>
 """
 
 import mysql.connector
-import sys
+#import sys
 import argparse
 import csv
 import requests
@@ -19,13 +19,16 @@ import locale
 
 from movie import Movie
 from person import Person
+from omdb import Omdb
+from tmdb import Tmdb
 
 locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
 
 def connectToDatabase():
     return mysql.connector.connect(user='predictor', password='predictor',
-                              host='127.0.0.1',
-                              database='predictor')
+#                                   host='127.0.0.1',
+                                   host='database',                                
+                                   database='predictor')
 
 def disconnectDatabase(cnx):
     cnx.close()
@@ -49,12 +52,16 @@ def insertMovieQuery(movie):
     return ("""INSERT INTO {} (`title`, `duration`, `original_title`, `rating`, `release_date`)
                VALUES (\"{}\", {}, \"{}\", \"{}\", \"{}\");""".format("`movies`", movie.title, movie.duration, movie.original_title, movie.rating, movie.release_date))
 
+def insertMoviePreparedQuery():
+    return ("""INSERT INTO `movies` (`title`, `duration`, `original_title`, `rating`, `release_date`)
+               VALUES (%s, %s, %s, %s, %s);""")
+
 def insertMovieDictQuery(movie):
     fields=[]
     values=[]
     for key in movie:
         fields.append('`'+ key+ '`')
-        values.append('\"' + movie[key]+ '\"')
+        values.append('\"' + movie[key] + '\"')
     sep=', '
     return ("""INSERT INTO {} ({})
                VALUES ({});""".format("`movies`", sep.join(fields), sep.join(values)))
@@ -74,6 +81,16 @@ def sendInsertQuery(query):
     cnx = connectToDatabase()
     cursor = createCursor(cnx)
     cursor.execute(query)
+    cnx.commit()
+    last_id = cursor.lastrowid
+    closeCursor(cursor)
+    disconnectDatabase(cnx)
+    return last_id
+
+def sendInsertPreparedQuery(query, data):
+    cnx = connectToDatabase()
+    cursor = createCursor(cnx)
+    cursor.execute(query, data)
     cnx.commit()
     last_id = cursor.lastrowid
     closeCursor(cursor)
@@ -126,11 +143,18 @@ def insertPerson(person):
     return sendInsertQuery(query)
 
 def insertMovie(movie):
-    query = insertMovieQuery(movie)
-    return sendInsertQuery(query)
+    query = insertMoviePreparedQuery()
+    #    query = insertMovieQuery(movie)
+    print(movie)
+    return sendInsertPreparedQuery(query,(movie.title,
+                                          movie.duration,
+                                          movie.original_title,
+                                          movie.rating,
+                                          movie.release_date))
+#    return sendInsertQuery(query)
 
 def insertMovieDict(movie):
-    query = insertMovieDictQuery(table, movie)
+    query = insertMovieDictQuery(movie)
     print(query)
     return sendInsertQuery(query)
 
@@ -257,7 +281,9 @@ elif context == "movies":
     insert_parser.add_argument('--release-date', metavar='YYYY-MM-DD',help='date de sortir du film à insérer', required=True)
     
     import_parser = action_subparser.add_parser('import', help='importe des entités à partir d\'un fichier')
-    import_parser.add_argument('--file' , metavar='file.csv', help='fichier d\'où importer les entitées', required=True)
+    import_parser.add_argument('--file' , metavar='file.csv', help='fichier d\'où importer les entitées')
+    import_parser.add_argument('--api' , choices=['omdb','tmdb'], help='TODO')
+    import_parser.add_argument('--imdbId' , metavar='tt123456', help='TODO')
 
     movie_parser =  action_subparser.add_parser('scrap', help='importe des entités à partir d\'une page Wikipedia')
     movie_parser.add_argument('url' , help='page Wikipedia d\'un film')
@@ -298,12 +324,22 @@ if args.context == "movies":
         id = insertMovie(movie)
         print("New movie added with id: "+str(id))
     if args.action == "import":
-        with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
-            reader=csv.DictReader(csvfile)
-            for row in reader:
-                movie = Movie(row['title'], row['original_title'], row['duration'], row['rating'], row['release_date'])
-                insertMovie(movie)
-#                insertMovieDict(row)
+        if args.file:
+            with open(args.file, 'r',newline='\n',encoding='utf-8') as csvfile:
+                reader=csv.DictReader(csvfile)
+                for row in reader:
+                    movie = Movie(row['title'], row['original_title'], row['duration'], row['rating'], row['release_date'])
+                    insertMovie(movie)
+                    #insertMovieDict(row)
+        if args.api == 'omdb':
+            api = Omdb()
+            movie = api.get_imdb_movie(args.imdbId)
+            insertMovie(movie)
+        elif args.api == 'tmdb':
+            api = Tmdb()
+            movie = api.get_imdb_movie(args.imdbId)
+            insertMovie(movie)
+
     if args.action == 'scrap':
         page = requests.get(args.url)
         print(scrapWikiPage(page))

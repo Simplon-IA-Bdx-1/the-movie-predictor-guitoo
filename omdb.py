@@ -2,7 +2,6 @@
 
 import requests
 from movie import Movie
-from dotenv import load_dotenv
 from os import getenv
 from math import ceil
 
@@ -79,6 +78,7 @@ class Omdb:
 if __name__ == '__main__':
     from pprint import pprint
     import os
+    from dotenv import load_dotenv
    
     load_dotenv()
 
@@ -91,3 +91,4 @@ if __name__ == '__main__':
     print(len(movies))
     for movie in movies:
         print(movie)
+
