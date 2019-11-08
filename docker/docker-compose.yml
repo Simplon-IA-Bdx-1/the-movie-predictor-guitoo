@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 services:
   the-movie-predictor:
     build:
@@ -10,6 +10,7 @@ services:
       - database_net
     env_file:
       - ../.env
+    command: tail -f /dev/null
   database:
     image: mysql:latest
     environment:
