@@ -1,55 +1,42 @@
 #!/usr/bin/env python3
 
-import requests
 from movie import Movie
-from os import getenv
 from math import ceil
+from restclient import RestClient
 
 
-class Omdb:
- 
-    host = 'http://www.omdbapi.com'
+class Omdb(RestClient):
+
     def __init__(self, api_key=None):
-        if api_key:
-            self.api_key = api_key
-        else:
-            self.api_key = getenv('OMDB_API_KEY')
-
-    def api_param(self):
-        return f'apikey={self.api_key}'
+        RestClient.__init__(self,
+                            'http://www.omdbapi.com',
+                            api_key,
+                            'OMDB_API_KEY')
+        self.api_key_argname = 'apikey'
 
     def search_titles(self, title, year=None):
-        params = self.api_param()
-        params += f'&s={title}'
-        params += f'&type=movie'
-
-        titles = []
-        
+        args = {'type': 'movie', 's': title}
         if year:
-            params += f'&y={year}'
-
-        results = requests.get(f'{self.host}/?{params}').json()
-        
+            args['y'] = year
+        titles = []
+        results = self.get('/', args)
         if results['Response'] != 'True':
             return None
-        
         for movie in results['Search']:
             titles.append(movie)
-        
         nb_results = int(results['totalResults'])
         last_page = ceil(nb_results/10)
 
-        for i in range(2,last_page+1):
-            page_param = f'&page={i}'
-            results = requests.get(f'{self.host}/?{params}{page_param}').json()
+        for i in range(2, last_page+1):
+            args.update({'page': i})
+            results = self.get('/', args)
             for movie in results['Search']:
                 titles.append(movie)
         return titles
-    
+
     def search_movies(self, title, year=None):
         titles = self.search_titles(title, year)
-        
-        movies=[]
+        movies = []
         for title in titles:
             movie = self.get_imdb_movie(title['imdbID'])
             movies.append(movie)
@@ -57,38 +44,31 @@ class Omdb:
 
     def get_movie(self, id):
         return self.get_imdb_movie(id)
-    
+
     def get_imdb_movie(self, id):
-        params = self.api_param()
-        params += f'&i={id}'
-        params += f'&type=movie'
-        result_json = requests.get(f'{self.host}/?{params}').json()
-
+        args = {'type': 'movie', 'i': id}
+        result = self.get('/', args)
         # TODO convert date format
-        movie = Movie(original_title=result_json['Title'],
-                      duration=result_json['Runtime'],
-                      release_date=result_json['Released'])
-
+        movie = Movie(original_title=result['Title'],
+                      duration=result['Runtime'],
+                      release_date=result['Released'])
         movie.tmdb_id = id
-                
-        #print( ' '.join((title, original_title, str(duration), release_date, str(popularity), str(vote), str(revenue), origin_country)) )
         return movie
 
 
 if __name__ == '__main__':
-    from pprint import pprint
+
     import os
     from dotenv import load_dotenv
-   
+
     load_dotenv()
 
     movie_db = Omdb(os.getenv('OMDB_API_KEY'))
 
-    #titanic = movie_db.get_imdb_movie('tt0120338')
-    #print(titanic)
+    # titanic = movie_db.get_imdb_movie('tt0120338')
+    # print(titanic)
 
-    movies = movie_db.search_movies('Joker')
+    movies = movie_db.search_movies('Joker', year=2019)
     print(len(movies))
     for movie in movies:
         print(movie)
-
