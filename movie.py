@@ -1,6 +1,10 @@
 class Movie:
     
-    def __init__(self, title=None, original_title=None, duration=None, rating=None, release_date=None):
+    def __init__(self, title=None, original_title=None,
+                 duration=None, rating=None, release_date=None,
+                 id=None, imdb_id=None, synopsis=None,
+                 production_budget=None, marketing_budget=None,
+                 is3d=None):
         self.title = title
         self.duration = duration
         self.original_title = original_title
