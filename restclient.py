@@ -14,20 +14,18 @@ class RestClient:
             self.api_key = getenv(api_key_env)
 
     def api_key_arg(self):
-        if self.api_key:
+        if self.api_key is None:
             return {}
         return {self.api_key_argname: self.api_key}
 
-    def query_string(self, args={}, command=None):
-        if args is None:
-            args = {}
-        if command is None:
-            command = ''
+    def query_string(self, command='', args={}):
+        
         query_args = RestArgs(**self.api_key_arg(), **args)
-        return f'{self.host}{command}/?{query_args}'
+        string = f'{self.host}{command}?{query_args}'
+        return string
 
-    def get(self, rest_args=None, command=None):
-        response = get(self.query_string(rest_args, command))
+    def get(self, command='', rest_args={}):
+        response = get(self.query_string(command, rest_args))
         # TODO error handling
         return response.json()
 

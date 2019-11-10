@@ -22,10 +22,9 @@ class Tmdb(RestClient):
     def language_arg(self):
         return {'language': self.language}
 
-    def query_string(self, args={}, command=''):
-        string = RestClient.query_string(self,
-                                         {**args, **self.language_arg()},
-                                         command)
+    def query_string(self, command='', args={}):
+        string = RestClient.query_string(self, command,
+                                         {**args, **self.language_arg()})
         return string
 
     def search_titles(self, query, year=None,
@@ -39,7 +38,7 @@ class Tmdb(RestClient):
         if region:
             args['region'] = region
 
-        response = self.get(args, '/search/movie/')
+        response = self.get('/search/movie/', args)
         results = response['results']
         last_page = int(response['total_pages'])
 
@@ -48,7 +47,7 @@ class Tmdb(RestClient):
             titles.append(title)
         for i in range(2, last_page+1):
             args.update({'page': i})
-            response = self.get(args, '/search/movie/')
+            response = self.get('/search/movie/', args)
             results = response['results']
             for title in results:
                 titles.append(title)
@@ -65,14 +64,14 @@ class Tmdb(RestClient):
 
     def get_imdb_movie(self, imdb_id):
         args = {'external_source': 'imdb_id'}
-        results = self.get(args, f'/find/{imdb_id}')['movie_results']
+        results = self.get(f'/find/{imdb_id}', args)['movie_results']
         if len(results) > 0:
             id = results[0]['id']
             return self.get_movie(id)
         return None
 
     def get_movie(self, id):
-        result = self.get(command=f'/movie/{id}')
+        result = self.get(f'/movie/{id}')
         title = result['title']
         release_date = result['release_date']
         duration = result['runtime']
@@ -88,20 +87,20 @@ class Tmdb(RestClient):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
+
     import os
     from dotenv import load_dotenv
     load_dotenv()
 
     movie_db = Tmdb(os.getenv('TMDB_API_KEY'))
 
-#    titanic = movie_db.get_imdb_movie('tt0120338')
-#    print(titanic)
+    titanic = movie_db.get_imdb_movie('tt0120338')
+    print(titanic)
 
-#    movie = movie_db.get_movie(100)
-#    print(movie)
-   
-    movies = movie_db.search_movies('Joker')
+    movie = movie_db.get_movie(100)
+    print(movie)
+
+    movies = movie_db.search_movies('Joker', year=2019)
     print(len(movies))
     for movie in movies:
-        pprint(movie)
+        print(movie)
