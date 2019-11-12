@@ -2,7 +2,9 @@
 
 from movie import Movie
 from math import ceil
+import datetime
 from restclient import RestClient
+import re
 
 
 class Omdb(RestClient):
@@ -49,9 +51,12 @@ class Omdb(RestClient):
         args = {'type': 'movie', 'i': id}
         result = self.get('/', args)
         # TODO convert date format
+        release_date = datetime.datetime.strptime(
+            result['Released'], '%d %b %Y').date()
+        duration = re.findall(r'(\d+)', result['Runtime'])[0]
         movie = Movie(original_title=result['Title'],
-                      duration=result['Runtime'],
-                      release_date=result['Released'])
+                      duration=duration,
+                      release_date=release_date)
         movie.tmdb_id = id
         return movie
 

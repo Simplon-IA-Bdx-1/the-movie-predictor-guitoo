@@ -2,12 +2,14 @@
 
 from movie import Movie
 from restclient import RestClient
+from pprint import pprint
 
 
 class Tmdb(RestClient):
 
     # host = 'https://api.themoviedb.org/3'
     language = 'fr'
+    region = 'FR'
 
     def __init__(self, api_key=None):
         RestClient.__init__(self,
@@ -29,8 +31,9 @@ class Tmdb(RestClient):
 
     def search_titles(self, query, year=None,
                       primary_release_year=None, region=None):
-        args = {'query': query}
-
+        args = {'query': query, 'page': 1}
+        keep_going = True
+        page = 1
         if year:
             args['year'] = year
         if primary_release_year:
@@ -38,13 +41,18 @@ class Tmdb(RestClient):
         if region:
             args['region'] = region
 
-        response = self.get('/search/movie/', args)
-        results = response['results']
-        last_page = int(response['total_pages'])
-
         titles = []
-        for title in results:
-            titles.append(title)
+        while keep_going:
+            response = self.get('/search/movie/', args)
+            results = response['results']
+            last_page = int(response['total_pages'])
+            for title in results:
+                titles.append(title)
+            if page < last_page:
+                page += 1
+                args.update({'page': page})
+            else:
+                keep_going = False
         for i in range(2, last_page+1):
             args.update({'page': i})
             response = self.get('/search/movie/', args)
@@ -63,15 +71,17 @@ class Tmdb(RestClient):
         return movies
 
     def get_imdb_movie(self, imdb_id):
-        args = {'external_source': 'imdb_id'}
-        results = self.get(f'/find/{imdb_id}', args)['movie_results']
-        if len(results) > 0:
-            id = results[0]['id']
-            return self.get_movie(id)
-        return None
+        # args = {'external_source': 'imdb_id'}
+        # results = self.get(f'/find/{imdb_id}', args)['movie_results']
+        # if len(results) > 0:
+        #    id = results[0]['id']
+        #    return self.get_movie(id)
+        # return None
+        return self.get_movie(imdb_id)
 
     def get_movie(self, id):
-        result = self.get(f'/movie/{id}')
+        args = {'region': self.region}
+        result = self.get(f'/movie/{id}', args)
         title = result['title']
         release_date = result['release_date']
         duration = result['runtime']
@@ -82,8 +92,38 @@ class Tmdb(RestClient):
         # popularity = result_json['popularity']
         # vote =  result_json['vote_average']
         # revenue = result_json['revenue']
+
+        result = self.get(f'/movie/{id}/credits')
+        pprint(result)
         movie.tmdb_id = id
         return movie
+
+    def get_titles_by_dates(self, from_date, to_date):
+        args = {'region': self.region,
+                'release_date.gte': from_date,
+                'release_date.lte': to_date}
+        response = self.get(f'/discover/movie', args)
+        results = response['results']
+        last_page = int(response['total_pages'])
+
+        titles = []
+        for title in results:
+            titles.append(title)
+        for i in range(2, last_page+1):
+            args.update({'page': i})
+            response = self.get('/discover/movie/', args)
+            results = response['results']
+            for title in results:
+                titles.append(title)
+        return titles
+
+    def get_movies_by_dates(self, from_date, to_date):
+        titles = self.get_titles_by_dates(from_date, to_date)
+        movies = []
+        for item in titles:
+            movie = self.get_movie(item['id'])
+            movies.append(movie)
+        return movies
 
 
 if __name__ == '__main__':
@@ -95,12 +135,12 @@ if __name__ == '__main__':
     movie_db = Tmdb(os.getenv('TMDB_API_KEY'))
 
     titanic = movie_db.get_imdb_movie('tt0120338')
-    print(titanic)
+    #print(titanic)
 
-    movie = movie_db.get_movie(100)
-    print(movie)
+    #movie = movie_db.get_movie(100)
+    #print(movie)
 
-    movies = movie_db.search_movies('Joker', year=2019)
-    print(len(movies))
-    for movie in movies:
-        print(movie)
+    #movies = movie_db.search_movies('Joker', year=2019)
+    #print(len(movies))
+    #for movie in movies:
+        #print(movie)
