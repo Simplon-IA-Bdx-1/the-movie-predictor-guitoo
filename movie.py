@@ -1,4 +1,11 @@
 class Movie:
+
+    actor = []
+    director = []
+    screeplay = []
+    producer = []
+    writer = []
+    editor = []
     
     def __init__(self, title=None, original_title=None,
                  duration=None, rating=None, release_date=None,
