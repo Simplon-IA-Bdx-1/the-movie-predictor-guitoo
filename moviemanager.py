@@ -6,9 +6,6 @@ from movie import Movie
 from person import Person
 
 
-
-
-
 class MovieManager:
 
     movies_table = 'movies'
@@ -88,6 +85,23 @@ class MovieManager:
             return results[0]
         return None
 
+    def insert(self, query, entity, fields):
+        args = []
+        for field in fields:
+            if hasattr(entity, field):
+                args.append(getattr(entity, field))
+            else:
+                args.append(None)
+        return self.sendInsertQuery(query, args)
+
+    def insertPerson(self, person):
+        query = self.insertPersonQuery()
+        return self.insert(query, person, self.people_fields)
+
+    def insertMovie(self, movie):
+        query = self.insertMovieQuery()
+        return self.insert(query, movie, self.movies_fields)
+
     def find_movie(self, id):
         result = self.find(self.movies_table, id)
         if result:
@@ -102,14 +116,36 @@ class MovieManager:
         return None
 
     def find_person(self, id):
-        result = self.find(self.movies_table, id)
+        result = self.find(self.people_table, id)
         if result:
             person = Person(result['firstname'],
                             result['lastname'])
             person = Person(**result)
             person.id = result['id']
             return person
-        return None 
+        return None
+
+    def findall(self, table):
+        entities = []
+        query = self.findAllQuery(table)
+        results = self.sendSelectQuery(query)
+        if table == 'movies':
+            for result in results:
+                movie = Movie(
+                    result['title'],
+                    result['original_title'],
+                    result['duration'],
+                    result['rating'],
+                    result['release_date'])
+                movie.id = result['id']
+                entities.append(movie)
+        if table == 'people':
+            for result in results:
+                person = Person(result['firstname'],
+                                result['lastname'])
+                person.id = result['id']
+                entities.append(person)
+        return entities
 
 
 def insert_query_generator(table, fields):
