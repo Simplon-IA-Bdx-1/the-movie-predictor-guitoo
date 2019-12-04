@@ -12,8 +12,8 @@ class MovieManager:
     people_table = 'people'
 
     movies_fields = ['original_title', 'title', 'duration',
-                     'rating', 'release_date']
-    people_fields = ['firstname', 'lastname']
+                     'rating', 'release_date', 'imdb_id']
+    people_fields = ['name', 'imdb_id']
 
     cnx = None
     cursor = None

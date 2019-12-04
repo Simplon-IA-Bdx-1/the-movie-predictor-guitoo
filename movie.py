@@ -1,11 +1,10 @@
 class Movie:
 
-    actor = []
-    director = []
-    screeplay = []
-    producer = []
-    writer = []
-    editor = []
+    actors = []
+    directors = []
+    producers = []
+    writers = []
+    editors = []
     
     def __init__(self, title=None, original_title=None,
                  duration=None, rating=None, release_date=None,
@@ -17,14 +16,13 @@ class Movie:
         self.original_title = original_title
         self.rating = rating
         self.release_date = release_date
-        
         self.actors = []
         self.is3d = None
         self.production_budget = None
         self.marketing_budget = None
 
     def total_budget(self):
-        if (self.production_budget == None) or (self.marketing_budget == None):
+        if (self.production_budget is None) or (self.marketing_budget is None):
             return None
 
         return self.production_budget + self.marketing_budget
@@ -38,4 +36,8 @@ class Movie:
         strings.append('duration: ' + str(self.duration))
         strings.append('rating: ' + str(self.rating))
         strings.append('release date: ' + str(self.release_date))
+
+#        if len(self.actor) > 0:
+#            strings.append('actors:(' + ', '.join(str(self.actor)) + ')')
+
         return ', '.join(strings)

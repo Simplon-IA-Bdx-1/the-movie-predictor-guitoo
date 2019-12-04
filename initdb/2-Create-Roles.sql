@@ -7,13 +7,7 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 USE `predictor`;
 
-CREATE TABLE `role` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-INSERT INTO `role` (`id`, `name`) VALUES
+INSERT INTO `movie_people_role` (`id`, `name`) VALUES
 (1,	'actor'),
 (2,	'director'),
 (3,	'producer'),

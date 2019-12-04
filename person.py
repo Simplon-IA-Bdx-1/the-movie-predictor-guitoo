@@ -1,13 +1,12 @@
 class Person:
     
-    def __init__(self, firstname=None, lastname=None, id=None):
-        self.firstname = firstname
-        self.lastname = lastname
-        self.id = id
+    def __init__(self, name=None,  imdb_id=None):
+        self.name = name
+        self.imdb_id = imdb_id
+#       self.id = id
 
     def __str__(self):
         strings = []
-        strings.append('id: ' + str(self.id))
-        strings.append('firstname: ' + str(self.firstname))
-        strings.append('lastname: ' + str(self.lastname))
+        strings.append('id: ' + str(self.imdb_id))
+        strings.append('name: ' + str(self.name))
         return ', '.join(strings)

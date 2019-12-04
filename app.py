@@ -178,9 +178,11 @@ elif context == "movies":
     import_parser.add_argument('--new-movies', metavar='<number of days!>',
                                type=int, help='TODO')
 
-    movie_parser =  action_subparser.add_parser('scrap', help='importe des entités à partir d\'une page Wikipedia')
-    movie_parser.add_argument('url' , help='page Wikipedia d\'un film')
-     
+    movie_parser = action_subparser.add_parser(
+        'scrap',
+        help='importe des entités à partir d\'une page Wikipedia')
+    movie_parser.add_argument('url', help='page Wikipedia d\'un film')
+
 args = parser.parse_args()
 
 

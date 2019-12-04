@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 from movie import Movie
+from person import Person
 from restclient import RestClient
 from pprint import pprint
-
+from time import sleep
 
 class Tmdb(RestClient):
 
@@ -79,6 +80,59 @@ class Tmdb(RestClient):
         # return None
         return self.get_movie(imdb_id)
 
+    def get_person(self, id):
+        args = {}
+        result = self.get(f'/person/{id}', args)
+        person = Person(name=result['name'], imdb_id=result['imdb_id'])
+        return person
+
+    def get_person_imdb_id(self, person_tmdb_id):
+        args = {}
+        result = self.get(f'/person/{person_tmdb_id}/external_ids', args)
+        return result['imdb_id']
+
+    def get_credits(self, imdb_id):
+        actors = []
+        
+        result = self.get(f'/movie/{imdb_id}/credits')
+        # return result
+        for i, actor in enumerate(result['cast']):
+            actor_tmdb_id = int(actor['id'])
+            person_id = self.get_person_imdb_id(actor_tmdb_id)
+            person = Person(name=actor['name'], imdb_id=person_id)
+            if person_id is not None:
+                actors.append(person)
+                # print(person)
+            if i % 10 == 9:
+                sleep(2)
+
+        writers = []
+        directors = []
+        producers = []
+        editors = []
+        for i, crew in enumerate(result['crew']):
+            if crew['job'] in ['Screenplay', 'Director', 'Editor', 'Producer']:
+                crew_tmdb_id = int(crew['id'])
+                person_id = self.get_person_imdb_id(crew_tmdb_id)
+                person = Person(name=crew['name'], imdb_id=person_id)
+                if person_id is not None:
+                    if crew['job'] == 'Screenplay':
+                        writers.append(person)
+                    elif crew['job'] == 'Director':
+                        directors.append(person)
+                    elif crew['job'] == 'Editor':
+                        editors.append(person)
+                    elif crew['job'] == 'Producer':
+                        producers.append(person)
+                    # print(person)
+                if i % 10 == 9:
+                    sleep(2)
+        return {'actors': actors,
+                'writers': writers,
+                'editors': editors,
+                'directors': directors,
+                'producers': producers}
+    
     def get_movie(self, id):
         args = {'region': self.region}
         result = self.get(f'/movie/{id}', args)
@@ -92,10 +146,8 @@ class Tmdb(RestClient):
         # popularity = result_json['popularity']
         # vote =  result_json['vote_average']
         # revenue = result_json['revenue']
-
-        result = self.get(f'/movie/{id}/credits')
-        pprint(result)
         movie.tmdb_id = id
+        # print(movie)
         return movie
 
     def get_titles_by_dates(self, from_date, to_date):
@@ -134,7 +186,9 @@ if __name__ == '__main__':
 
     movie_db = Tmdb(os.getenv('TMDB_API_KEY'))
 
-    titanic = movie_db.get_imdb_movie('tt0120338')
+    # titanic = movie_db.get_imdb_movie('tt0120338')
+    titanic = movie_db.get_credits('tt0120338')
+    pprint(titanic)
     #print(titanic)
 
     #movie = movie_db.get_movie(100)
