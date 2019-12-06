@@ -68,7 +68,8 @@ class Tmdb(RestClient):
         movies = []
         for item in titles:
             movie = self.get_movie(item['id'])
-            movies.append(movie)
+            if movie is not None:
+                movies.append(movie)
         return movies
 
     def get_imdb_movie(self, imdb_id):
@@ -140,13 +141,18 @@ class Tmdb(RestClient):
         release_date = result['release_date']
         duration = result['runtime']
         original_title = result['original_title']
+                
         # origin_country = result_json['production_countries'][0]['name']
         movie = Movie(title, original_title, duration,
                       release_date=release_date)
         # popularity = result_json['popularity']
         # vote =  result_json['vote_average']
         # revenue = result_json['revenue']
-        movie.tmdb_id = id
+        movie.synopsis = result['overview']
+        movie.production_budget = result['budget']
+        movie.tmdb_id = result['id']
+        movie.imdb_id = result['imdb_id']
+        movie.score = result['vote_average']
         # print(movie)
         return movie
 

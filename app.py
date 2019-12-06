@@ -249,7 +249,21 @@ if args.context == "movies":
             movies = api.get_movies_by_dates(from_date=str(last_week.date()),
                                              to_date=str(now.date()))
             for movie in movies:
-                mov_man.insertMovie(movie)
+                if movie.imdb_id is None:
+                    continue
+                movie_id = mov_man.insertMovie(movie)
+                movie_id = mov_man.find_movie_id(movie.imdb_id)
+                crew = api.get_credits(movie.imdb_id)
+                role_ids = range(1, 6)
+                roles = ['actors','directors','producers','writers','editors']
+                for role, role_id in zip(roles, role_ids):
+                    people = crew[role]
+                    for person in people:
+                        print(person)
+                        person_id = mov_man.insertPerson(person)
+                        person_id = mov_man.find_person_id(person.imdb_id)
+                        mov_man.insertCredit(movie_id, person_id, role_id)
+            
 
     if args.action == 'scrap':
         page = requests.get(args.url)

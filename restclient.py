@@ -1,6 +1,6 @@
 from requests import get
 from os import getenv
-
+from time import sleep
 
 class RestClient:
     
@@ -26,8 +26,15 @@ class RestClient:
 
     def get(self, command='', rest_args={}):
         response = get(self.query_string(command, rest_args))
+        status = response.status_code
+        if status != 200:
+            print(status)
+        if status == 429:
+            sleep(2)
+            response = get(self.query_string(command, rest_args))
+            status = response.status_code
         # TODO error handling
-        return response.json()
+        return response.json()  # (response.json, response.status_code)
 
 
 class RestArgs(dict):

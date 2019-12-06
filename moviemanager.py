@@ -12,7 +12,8 @@ class MovieManager:
     people_table = 'people'
 
     movies_fields = ['original_title', 'title', 'duration',
-                     'rating', 'release_date', 'imdb_id']
+                     'production_budget',
+                     'rating', 'release_date', 'score', 'synopsis', 'imdb_id']
     people_fields = ['name', 'imdb_id']
 
     cnx = None
@@ -71,13 +72,14 @@ class MovieManager:
     def sendInsertQuery(self, query, data):
         self.connectToDatabase()
         self.createCursor()
+        # print(query.format(data))
         self.cursor.execute(query, data)
         self.cnx.commit()
         last_id = self.cursor.lastrowid
         self.closeCursor()
         self.disconnectDatabase()
         return last_id
-
+        
     def find(self, table, id):
         query = self.findQuery(table, id)
         results = self.sendSelectQuery(query)
@@ -95,12 +97,37 @@ class MovieManager:
         return self.sendInsertQuery(query, args)
 
     def insertPerson(self, person):
+        #query = f"INSERT IGNORE INTO `people`(`name`, `imdb_id`)VALUES({person.name}, {person.imdb_id});"
+        #print(query)
+        #return self.insert(query, person, self.people_fields)
+        
         query = self.insertPersonQuery()
+        # print(query)
         return self.insert(query, person, self.people_fields)
 
     def insertMovie(self, movie):
-        query = self.insertMovieQuery()
-        return self.insert(query, movie, self.movies_fields)
+        if movie.imdb_id is not None:
+            query = self.insertMovieQuery()
+            print(query)
+            return self.insert(query, movie, self.movies_fields)
+        return None
+
+    def insertCredit(self, movie_id, person_id, role_id):
+        query = "INSERT INTO `movie_people_roles`(`movie_id`,`people_id`,`role_id`) VALUES(%s, %s, %s)"
+        print(movie_id, person_id, role_id)
+        return self.sendInsertQuery(query, [movie_id, person_id, role_id])
+
+    def find_movie_id(self, imdb_id):
+        query = f"SELECT `id` FROM `movies` WHERE `imdb_id`='{imdb_id}'"
+        print(query)
+        id = self.sendSelectQuery(query)[0]['id']
+        return id
+
+    def find_person_id(self, imdb_id):
+        query = f"SELECT `id` FROM `people` WHERE `imdb_id`='{imdb_id}'"
+        # print(query)
+        id = self.sendSelectQuery(query)[0]['id']
+        return id
 
     def find_movie(self, id):
         result = self.find(self.movies_table, id)
@@ -154,7 +181,8 @@ def insert_query_generator(table, fields):
     placeholders = sep.join(['%s'] * len(fields))
     query = f"INSERT INTO `{table}`"
     query += f"({sep.join(columns)})"
-    query += "VALUES({});".format(placeholders)
+    query += "VALUES({})".format(placeholders)
+    query += f"ON DUPLICATE KEY UPDATE `{fields[0]}` = `{fields[0]}`"
     return query
 
 

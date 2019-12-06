@@ -7,12 +7,12 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 USE `predictor`;
 
-INSERT INTO `movie_people_role` (`id`, `name`) VALUES
+INSERT INTO `role` (`id`, `name`) VALUES
 (1,	'actor'),
 (2,	'director'),
 (3,	'producer'),
 (4,	'writer'),
-(5,	'editor'),
-(6,	'screenplay');
+(5,	'editor');
+
 
 -- 2019-11-12 16:01:20
