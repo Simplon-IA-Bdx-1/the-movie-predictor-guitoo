@@ -108,18 +108,18 @@ class MovieManager:
     def insertMovie(self, movie):
         if movie.imdb_id is not None:
             query = self.insertMovieQuery()
-            print(query)
+            # print(query)
             return self.insert(query, movie, self.movies_fields)
         return None
 
     def insertCredit(self, movie_id, person_id, role_id):
         query = "INSERT INTO `movie_people_roles`(`movie_id`,`people_id`,`role_id`) VALUES(%s, %s, %s)"
-        print(movie_id, person_id, role_id)
+        # print(movie_id, person_id, role_id)
         return self.sendInsertQuery(query, [movie_id, person_id, role_id])
 
     def find_movie_id(self, imdb_id):
         query = f"SELECT `id` FROM `movies` WHERE `imdb_id`='{imdb_id}'"
-        print(query)
+        # print(query)
         id = self.sendSelectQuery(query)[0]['id']
         return id
 

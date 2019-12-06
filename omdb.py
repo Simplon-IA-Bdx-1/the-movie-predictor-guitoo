@@ -21,7 +21,7 @@ class Omdb(RestClient):
         if year:
             args['y'] = year
         titles = []
-        results = self.get('/', args)
+        results, status = self.get('/', args)
         if results['Response'] != 'True':
             return None
         for movie in results['Search']:
@@ -31,7 +31,7 @@ class Omdb(RestClient):
 
         for i in range(2, last_page+1):
             args.update({'page': i})
-            results = self.get('/', args)
+            results, status = self.get('/', args)
             for movie in results['Search']:
                 titles.append(movie)
         return titles
@@ -49,7 +49,7 @@ class Omdb(RestClient):
 
     def get_imdb_movie(self, id):
         args = {'type': 'movie', 'i': id}
-        result = self.get('/', args)
+        result, status = self.get('/', args)
         # TODO convert date format
         release_date = datetime.datetime.strptime(
             result['Released'], '%d %b %Y').date()

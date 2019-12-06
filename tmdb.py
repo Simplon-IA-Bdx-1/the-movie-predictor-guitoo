@@ -25,6 +25,20 @@ class Tmdb(RestClient):
     def language_arg(self):
         return {'language': self.language}
 
+    def get(self, command='', rest_args={}):
+        for i in range(5):
+            result, status = RestClient.get(self, command, rest_args)
+            if status == 200:
+                return result, status
+            elif status == 429:
+                print("Too fast")
+                sleep(1*i)
+            else:
+                print(f"status code: {status}")
+                return result, status
+        print("Much Too fast")
+        return result, status
+    
     def query_string(self, command='', args={}):
         string = RestClient.query_string(self, command,
                                          {**args, **self.language_arg()})
@@ -44,7 +58,7 @@ class Tmdb(RestClient):
 
         titles = []
         while keep_going:
-            response = self.get('/search/movie/', args)
+            response, status = self.get('/search/movie/', args)
             results = response['results']
             last_page = int(response['total_pages'])
             for title in results:
@@ -56,7 +70,7 @@ class Tmdb(RestClient):
                 keep_going = False
         for i in range(2, last_page+1):
             args.update({'page': i})
-            response = self.get('/search/movie/', args)
+            response, status = self.get('/search/movie/', args)
             results = response['results']
             for title in results:
                 titles.append(title)
@@ -67,7 +81,7 @@ class Tmdb(RestClient):
         titles = self.search_titles(query, year, primary_release_year, region)
         movies = []
         for item in titles:
-            movie = self.get_movie(item['id'])
+            movie, status = self.get_movie(item['id'])
             if movie is not None:
                 movies.append(movie)
         return movies
@@ -83,19 +97,20 @@ class Tmdb(RestClient):
 
     def get_person(self, id):
         args = {}
-        result = self.get(f'/person/{id}', args)
+        result, status = self.get(f'/person/{id}', args)
         person = Person(name=result['name'], imdb_id=result['imdb_id'])
         return person
 
     def get_person_imdb_id(self, person_tmdb_id):
         args = {}
-        result = self.get(f'/person/{person_tmdb_id}/external_ids', args)
+        result, status = self.get(f'/person/{person_tmdb_id}/external_ids',
+                                  args)
         return result['imdb_id']
 
     def get_credits(self, imdb_id):
         actors = []
         
-        result = self.get(f'/movie/{imdb_id}/credits')
+        result, status = self.get(f'/movie/{imdb_id}/credits')
         # return result
         for i, actor in enumerate(result['cast']):
             actor_tmdb_id = int(actor['id'])
@@ -136,7 +151,7 @@ class Tmdb(RestClient):
     
     def get_movie(self, id):
         args = {'region': self.region}
-        result = self.get(f'/movie/{id}', args)
+        result, status = self.get(f'/movie/{id}', args)
         title = result['title']
         release_date = result['release_date']
         duration = result['runtime']
@@ -160,7 +175,7 @@ class Tmdb(RestClient):
         args = {'region': self.region,
                 'release_date.gte': from_date,
                 'release_date.lte': to_date}
-        response = self.get(f'/discover/movie', args)
+        response, status = self.get(f'/discover/movie', args)
         results = response['results']
         last_page = int(response['total_pages'])
 
